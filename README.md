@@ -4,12 +4,52 @@ A production-style full-stack finance project focused on portfolio analytics, ri
 
 This project is designed to showcase skills relevant for finance analyst, portfolio analyst, investment analyst, and risk analyst internships.
 
+## Screenshots
+
+### Overview
+
+Full portfolio overview with KPI strip, cumulative returns chart, sector allocation, insights, and holdings breakdown.
+
+![Overview](docs/screenshots/overview.png)
+
+### Holdings Builder
+
+Manual entry and CSV drag-and-drop upload for portfolio construction.
+
+![Holdings](docs/screenshots/holdings.png)
+
+### Risk Analytics
+
+VaR metrics, drawdown curve, rolling volatility/beta, risk contribution by holding, correlation matrix, and worst return days.
+
+![Risk](docs/screenshots/risk.png)
+
+### Benchmark Comparison
+
+Active return/risk, upside/downside capture ratios, and contextual insights vs. SPY.
+
+![Benchmark](docs/screenshots/benchmark.png)
+
+### Scenario & Stress Testing
+
+Custom scenario shock builder with estimated portfolio impact and comparison chart.
+
+![Scenarios](docs/screenshots/scenarios.png)
+
+### Portfolio Optimization
+
+Efficient frontier plot, current vs. optimized weight comparison, and detailed weight table.
+
+![Optimization](docs/screenshots/optimization.png)
+
+---
+
 ## Tech Stack
 
 - Frontend: Next.js (App Router), TypeScript, Tailwind CSS
 - Backend: FastAPI, Python 3.11
 - Analytics stack: pandas, numpy, scipy, statsmodels
-- Data provider: yfinance (provider abstraction via `market_data` service)
+- Data provider: Stooq (free, no API key — provider abstraction via `market_data` service)
 - Database: PostgreSQL
 - ORM: SQLAlchemy
 - Infra: Docker + Docker Compose
@@ -18,7 +58,7 @@ This project is designed to showcase skills relevant for finance analyst, portfo
 
 - Portfolio creation with holdings payload
 - CSV upload endpoint for holdings ingestion
-- Historical price pull from yfinance
+- Historical price pull from Stooq
 - Performance analytics:
   - cumulative return, annualized return, annualized volatility
   - Sharpe, Sortino, max drawdown, Calmar
@@ -84,7 +124,6 @@ This project is designed to showcase skills relevant for finance analyst, portfo
 2. From project root:
 
 ```bash
-cd "/Users/anirudhkumarmandala/Downloads/Quant Arc"
 docker compose up --build
 ```
 
@@ -131,7 +170,7 @@ pytest
 
 ## Notes
 
-- Current market data provider is yfinance for fast setup.
+- Current market data provider is Stooq (free, no API key required).
 - The service layer is separated so you can swap in a paid institutional data source later.
 - The frontend is intentionally clean and recruiter-friendly, with a dark institutional dashboard style.
 
