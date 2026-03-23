@@ -6,7 +6,15 @@ A production-style full-stack finance project focused on portfolio analytics, ri
 
 This project is designed to showcase skills relevant for finance analyst, portfolio analyst, investment analyst, and risk analyst internships.
 
+**Live demo:** [portfolio-risk-intelligence-dashboa.vercel.app](https://portfolio-risk-intelligence-dashboa.vercel.app)
+
 ## Screenshots
+
+### Landing Page
+
+Welcome page with feature highlights, 5 pre-loaded demo portfolios, and quick-jump navigation.
+
+![Landing](docs/screenshots/landing.png)
 
 ### Overview
 
