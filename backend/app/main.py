@@ -24,15 +24,10 @@ app = FastAPI(
 )
 
 origins = list(settings.allowed_origins)
-if settings.environment == "production":
-    origins.extend([
-        "https://portfolio-risk-intelligence-dashboa.vercel.app",
-        "https://portfolio-risk-intelligence-dashboard.vercel.app",
-    ])
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
