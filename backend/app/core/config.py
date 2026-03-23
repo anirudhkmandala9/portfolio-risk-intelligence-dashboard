@@ -13,6 +13,7 @@ class Settings(BaseSettings):
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
+        json_parse_fallback = True
 
 
 @lru_cache(maxsize=1)

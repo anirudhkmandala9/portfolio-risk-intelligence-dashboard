@@ -25,6 +25,10 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   return (await response.json()) as T;
 }
 
+export function downloadUrl(path: string): string {
+  return `${API_BASE_URL}${path}`;
+}
+
 export async function apiUpload<T>(path: string, file: File): Promise<T> {
   const form = new FormData();
   form.append("file", file);

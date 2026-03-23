@@ -10,6 +10,8 @@ from app.routers.analytics import _get_portfolio_holdings, _portfolio_returns
 from app.services.market_data import fetch_adj_close_prices
 from app.services.insights import generate_insights
 from app.services.optimization import min_vol_weights, max_sharpe_weights
+from app.services.monte_carlo import run_monte_carlo
+from app.services.factor_analysis import fama_french_regression
 
 router = APIRouter(prefix="/charts", tags=["charts"])
 
@@ -218,3 +220,33 @@ def efficient_frontier(portfolio_id: int, n_points: int = 30, db: Session = Depe
         "min_vol": {"volatility": round(mv_vol, 5), "return": round(mv_ret, 5)},
         "max_sharpe": {"volatility": round(ms_vol, 5), "return": round(ms_ret, 5)},
     }
+
+
+@router.get("/{portfolio_id}/monte-carlo")
+def monte_carlo_simulation(
+    portfolio_id: int,
+    n_simulations: int = 5000,
+    horizon_days: int = 252,
+    db: Session = Depends(get_db),
+) -> dict:
+    """Run Monte Carlo simulation on the portfolio."""
+    portfolio, holdings = _get_portfolio_holdings(portfolio_id, db)
+    weights, asset_returns, _ = _weights_and_asset_returns(holdings, portfolio.benchmark_ticker)
+
+    common = [c for c in weights.index if c in asset_returns.columns]
+    if len(common) < 1:
+        return {"error": "No common return data for holdings."}
+
+    w = weights[common].values.astype(float)
+    w = w / w.sum()
+    rets = asset_returns[common]
+
+    return run_monte_carlo(rets, w, n_simulations=n_simulations, horizon_days=horizon_days)
+
+
+@router.get("/{portfolio_id}/factor-analysis")
+def factor_analysis(portfolio_id: int, db: Session = Depends(get_db)) -> dict:
+    """Fama-French 3-factor regression on the portfolio."""
+    portfolio, holdings = _get_portfolio_holdings(portfolio_id, db)
+    p_ret, _ = _portfolio_returns(holdings, portfolio.benchmark_ticker)
+    return fama_french_regression(p_ret)

@@ -13,6 +13,8 @@ import {
   GitCompareArrows,
   FlaskConical,
   Sparkles,
+  Dice5,
+  FlaskRound,
 } from "lucide-react";
 
 const items = [
@@ -22,6 +24,8 @@ const items = [
   { href: "/benchmark", label: "Benchmark", icon: GitCompareArrows },
   { href: "/scenarios", label: "Scenarios", icon: FlaskConical },
   { href: "/optimization", label: "Optimization", icon: Sparkles },
+  { href: "/monte-carlo", label: "Monte Carlo", icon: Dice5 },
+  { href: "/factors", label: "Factor Analysis", icon: FlaskRound },
 ];
 
 export function MobileNav() {

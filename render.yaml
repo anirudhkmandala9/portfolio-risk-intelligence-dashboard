@@ -1,0 +1,22 @@
+databases:
+  - name: portfolio-risk-db
+    plan: free
+    databaseName: portfolio_risk
+    user: app_user
+
+services:
+  - type: web
+    name: portfolio-risk-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: portfolio-risk-db
+          property: connectionString
+      - key: ENVIRONMENT
+        value: production
+      - key: ALLOWED_ORIGINS
+        value: '["https://portfolio-risk-intelligence-dashboard.vercel.app"]'

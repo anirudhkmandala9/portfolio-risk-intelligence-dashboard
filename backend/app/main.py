@@ -11,6 +11,7 @@ from app.routers.portfolio import router as portfolio_router
 from app.routers.risk import router as risk_router
 from app.routers.scenarios import router as scenarios_router
 from app.routers.charts import router as charts_router
+from app.routers.export import router as export_router
 from app import models  # noqa: F401
 
 
@@ -22,9 +23,13 @@ app = FastAPI(
     version="0.1.0",
 )
 
+origins = list(settings.allowed_origins)
+if settings.environment == "production":
+    origins.append("https://portfolio-risk-intelligence-dashboard.vercel.app")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.allowed_origins,
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -40,6 +45,7 @@ app.include_router(benchmark_router)
 app.include_router(scenarios_router)
 app.include_router(optimization_router)
 app.include_router(charts_router)
+app.include_router(export_router)
 
 
 @app.get("/health", tags=["system"])

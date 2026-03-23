@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { apiGet } from "../lib/api";
+import { apiGet, downloadUrl } from "../lib/api";
 import { MetricCard } from "../components/MetricCard";
 import { PortfolioSelector } from "../components/PortfolioSelector";
 import { Spinner } from "../components/Spinner";
@@ -12,6 +12,7 @@ import {
   TrendingUp,
   PieChart,
   Lightbulb,
+  Download,
 } from "lucide-react";
 import {
   AreaChart,
@@ -107,6 +108,23 @@ export default function HomePage() {
 
       {loading && <Spinner />}
       {error && <p className="text-xs text-rose-400">{error}</p>}
+
+      {metrics.length > 0 && portfolioId && (
+        <div className="flex items-center gap-3 fade-in">
+          <a
+            href={downloadUrl(`/export/${portfolioId}/csv`)}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface/60 px-3 py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-slate-800 hover:text-white"
+          >
+            <Download size={12} /> Export analytics CSV
+          </a>
+          <a
+            href={downloadUrl(`/export/${portfolioId}/holdings-csv`)}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface/60 px-3 py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-slate-800 hover:text-white"
+          >
+            <Download size={12} /> Export holdings CSV
+          </a>
+        </div>
+      )}
 
       {heroMetrics.length > 0 && (
         <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 fade-in">

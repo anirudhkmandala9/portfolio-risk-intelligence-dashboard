@@ -1,5 +1,7 @@
 # Portfolio Risk Intelligence Dashboard
 
+[![CI](https://github.com/anirudhkmandala9/portfolio-risk-intelligence-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/anirudhkmandala9/portfolio-risk-intelligence-dashboard/actions/workflows/ci.yml)
+
 A production-style full-stack finance project focused on portfolio analytics, risk intelligence, and benchmark-relative decision support.
 
 This project is designed to showcase skills relevant for finance analyst, portfolio analyst, investment analyst, and risk analyst internships.
@@ -42,6 +44,18 @@ Efficient frontier plot, current vs. optimized weight comparison, and detailed w
 
 ![Optimization](docs/screenshots/optimization.png)
 
+### Monte Carlo Simulation
+
+Forward-looking risk: 5,000 simulated portfolio paths with percentile fan chart and return distribution.
+
+![Monte Carlo](docs/screenshots/monte-carlo.png)
+
+### Fama-French Factor Analysis
+
+3-factor regression with market/SMB/HML loadings, return attribution, and significance table.
+
+![Factor Analysis](docs/screenshots/factors.png)
+
 ---
 
 ## Tech Stack
@@ -78,6 +92,15 @@ Efficient frontier plot, current vs. optimized weight comparison, and detailed w
   - minimum volatility weights
   - max Sharpe weights
   - current vs optimized comparison
+- Monte Carlo simulation:
+  - configurable simulations and horizon
+  - percentile fan chart, return distribution histogram
+  - MC VaR/CVaR, probability of loss/gain
+- Fama-French 3-factor analysis:
+  - market, SMB, HML factor loadings
+  - return attribution breakdown
+  - regression statistics with p-values
+- CSV export of analytics and holdings
 
 ## Project Structure
 
@@ -117,6 +140,10 @@ Efficient frontier plot, current vs. optimized weight comparison, and detailed w
 - `GET /benchmark/{id}` - benchmark-relative analytics
 - `POST /scenarios/{id}` - run scenario shocks
 - `GET /optimization/{id}` - optimization recommendations
+- `GET /charts/{id}/monte-carlo?n_simulations=5000&horizon_days=252` - Monte Carlo simulation
+- `GET /charts/{id}/factor-analysis` - Fama-French 3-factor regression
+- `GET /export/{id}/csv` - download full analytics as CSV
+- `GET /export/{id}/holdings-csv` - download holdings as CSV
 
 ## Run with Docker
 
@@ -167,6 +194,28 @@ pytest
    - `Benchmark` page for relative analysis
    - `Scenarios` page for stress testing
    - `Optimization` page for suggested weights
+
+## Deploy Live
+
+### Backend on Render
+
+1. Go to [render.com](https://render.com) and sign up / log in.
+2. Click **New > Blueprint** and connect your GitHub repo.
+3. Render will detect `render.yaml` and create the API service + PostgreSQL database automatically.
+4. Once deployed, copy the service URL (e.g. `https://portfolio-risk-api-xxxx.onrender.com`).
+
+### Frontend on Vercel
+
+1. Go to [vercel.com](https://vercel.com) and sign up / log in.
+2. Click **Add New > Project** and import the GitHub repo.
+3. Set **Root Directory** to `frontend`.
+4. Add environment variable: `NEXT_PUBLIC_API_BASE_URL` = your Render backend URL from above.
+5. Deploy. Vercel auto-detects Next.js and builds it.
+
+### Post-deploy
+
+- Update the `ALLOWED_ORIGINS` env var on Render to include your Vercel URL.
+- The live URLs will be your portfolio showcase links for resumes and applications.
 
 ## Notes
 
