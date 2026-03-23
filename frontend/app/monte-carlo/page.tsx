@@ -113,7 +113,7 @@ export default function MonteCarloPage() {
             <MetricCard label="Expected Return" value={fmtPct(data.statistics.expected_return)} accent="positive" />
             <MetricCard label="MC VaR (95%)" value={fmtPct(data.statistics.mc_var_95)} accent="negative" />
             <MetricCard label="MC CVaR (95%)" value={fmtPct(data.statistics.mc_cvar_95)} accent="negative" />
-            <MetricCard label="Prob of Loss" value={fmtPct(data.statistics.prob_loss)} accent={data.statistics.prob_loss > 0.5 ? "negative" : "neutral"} />
+            <MetricCard label="Prob of Loss" value={fmtPct(data.statistics.prob_loss)} accent={data.statistics.prob_loss > 0.5 ? "negative" : "default"} />
             <MetricCard label="Prob of 10%+ Gain" value={fmtPct(data.statistics.prob_gain_10)} accent="positive" />
           </section>
 
