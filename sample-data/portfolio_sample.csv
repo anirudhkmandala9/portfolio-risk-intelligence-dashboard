@@ -1,0 +1,7 @@
+ticker,shares,purchase_price,asset_class,sector
+AAPL,20,182,Equity,Technology
+MSFT,15,395,Equity,Technology
+JNJ,10,160,Equity,Healthcare
+XLE,30,89,ETF,Energy
+TLT,25,95,ETF,Fixed Income
+
