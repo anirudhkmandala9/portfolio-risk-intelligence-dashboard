@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { apiPost } from "../../lib/api";
-import { PageHeader } from "../../components/PageHeader";
-import { PortfolioSelector } from "../../components/PortfolioSelector";
-import { Spinner } from "../../components/Spinner";
+import { apiPost } from "../../../lib/api";
+import { PageHeader } from "../../../components/PageHeader";
+import { PortfolioSelector } from "../../../components/PortfolioSelector";
+import { Spinner } from "../../../components/Spinner";
 import { FlaskConical, Plus, Trash2, Zap } from "lucide-react";
 import {
   BarChart,

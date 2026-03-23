@@ -1,284 +1,285 @@
 "use client";
 
-import { useState } from "react";
-import { apiGet, downloadUrl } from "../lib/api";
-import { MetricCard } from "../components/MetricCard";
-import { PortfolioSelector } from "../components/PortfolioSelector";
-import { Spinner } from "../components/Spinner";
-import { PageHeader } from "../components/PageHeader";
+import Link from "next/link";
 import {
-  BarChart3,
-  ShieldCheck,
+  LayoutDashboard,
+  ShieldAlert,
+  GitCompareArrows,
+  FlaskConical,
+  Sparkles,
+  Dice5,
+  FlaskRound,
+  Briefcase,
+  ArrowRight,
   TrendingUp,
-  PieChart,
-  Lightbulb,
-  Download,
+  BarChart3,
+  Target,
+  ChevronRight,
 } from "lucide-react";
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
 
-type Metric = { key: string; value: number };
-type Analytics = { portfolio_id: number; metrics: Metric[] };
-type AllocationItem = { name: string; weight: number };
-type Allocation = {
-  portfolio_id: number;
-  by_asset: AllocationItem[];
-  by_sector: AllocationItem[];
-  hhi: number;
-  diversification_score: number;
-};
-type CumulativeData = { dates: string[]; portfolio: number[]; benchmark: number[] };
-type InsightsData = { portfolio_id: number; insights: string[] };
+const features = [
+  {
+    icon: TrendingUp,
+    title: "Performance Analytics",
+    desc: "Sharpe, Sortino, Alpha, Beta, Calmar, Tracking Error, Information Ratio — all computed from live market data.",
+  },
+  {
+    icon: ShieldAlert,
+    title: "Risk Intelligence",
+    desc: "Value-at-Risk, Expected Shortfall, drawdown curves, rolling volatility, correlation matrices, and risk contribution.",
+  },
+  {
+    icon: Dice5,
+    title: "Monte Carlo Simulation",
+    desc: "Project 5,000+ future portfolio paths. See probability of loss, VaR, and return distributions.",
+  },
+  {
+    icon: FlaskRound,
+    title: "Fama-French Factors",
+    desc: "3-factor regression decomposing returns into market, size, and value exposures with significance testing.",
+  },
+  {
+    icon: Sparkles,
+    title: "Portfolio Optimization",
+    desc: "Efficient frontier with minimum-volatility and maximum-Sharpe portfolios. Compare current vs optimized weights.",
+  },
+  {
+    icon: FlaskConical,
+    title: "Stress Testing",
+    desc: "Custom scenario shocks — what if tech drops 10%? What if your top holding crashes 20%? See estimated impact.",
+  },
+];
 
-const fmtPct = (v: number) => `${(v * 100).toFixed(2)}%`;
-const fmtDec = (v: number) => v.toFixed(4);
-const highlight = ["annualized_return", "annualized_volatility", "sharpe_ratio", "max_drawdown", "beta", "alpha"];
+const demos = [
+  {
+    name: "Demo Portfolio",
+    strategy: "Balanced mix across sectors",
+    tickers: ["AAPL", "MSFT", "JNJ", "XLE", "TLT"],
+    color: "from-sky-500/20 to-sky-500/5",
+    border: "border-sky-500/20",
+  },
+  {
+    name: "Tech Growth",
+    strategy: "Pure tech concentration",
+    tickers: ["NVDA", "META", "AMZN", "GOOGL", "CRM"],
+    color: "from-violet-500/20 to-violet-500/5",
+    border: "border-violet-500/20",
+  },
+  {
+    name: "Conservative Income",
+    strategy: "Defensive, low-volatility",
+    tickers: ["JNJ", "PG", "KO", "TLT", "VZ"],
+    color: "from-emerald-500/20 to-emerald-500/5",
+    border: "border-emerald-500/20",
+  },
+  {
+    name: "Sector Diversified",
+    strategy: "Spread across 7 sectors",
+    tickers: ["AAPL", "JPM", "UNH", "XOM", "AMT", "GLD", "TLT"],
+    color: "from-amber-500/20 to-amber-500/5",
+    border: "border-amber-500/20",
+  },
+  {
+    name: "High Risk Momentum",
+    strategy: "Aggressive, high-beta",
+    tickers: ["TSLA", "NVDA", "AMD", "COIN", "SQ"],
+    color: "from-rose-500/20 to-rose-500/5",
+    border: "border-rose-500/20",
+  },
+];
 
-const accentFor = (key: string, val: number) => {
-  if (key === "max_drawdown") return val < -0.1 ? ("negative" as const) : ("default" as const);
-  if (key === "sharpe_ratio") return val > 0.5 ? ("positive" as const) : val < 0 ? ("negative" as const) : ("default" as const);
-  if (key === "alpha") return val > 0 ? ("positive" as const) : val < 0 ? ("negative" as const) : ("default" as const);
-  if (key === "annualized_return") return val > 0 ? ("positive" as const) : ("negative" as const);
-  return "default" as const;
-};
-
-const isPct = (k: string) => k.includes("return") || k.includes("volatility") || k.includes("drawdown") || k.includes("error");
-
-export default function HomePage() {
-  const [portfolioId, setPortfolioId] = useState<number | null>(null);
-  const [metrics, setMetrics] = useState<Metric[]>([]);
-  const [allocation, setAllocation] = useState<Allocation | null>(null);
-  const [cumData, setCumData] = useState<{ date: string; Portfolio: number; Benchmark: number }[]>([]);
-  const [insights, setInsights] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const run = async () => {
-    if (!portfolioId) return;
-    setLoading(true);
-    setError("");
-    try {
-      const [perf, alloc, cum, ins] = await Promise.all([
-        apiGet<Analytics>(`/analytics/${portfolioId}/performance`),
-        apiGet<Allocation>(`/analytics/${portfolioId}/allocation`),
-        apiGet<CumulativeData>(`/charts/${portfolioId}/cumulative`),
-        apiGet<InsightsData>(`/charts/${portfolioId}/insights`),
-      ]);
-      setMetrics(perf.metrics);
-      setAllocation(alloc);
-      setInsights(ins.insights);
-      setCumData(
-        cum.dates.map((d, i) => ({
-          date: d,
-          Portfolio: +(cum.portfolio[i] * 100).toFixed(2),
-          Benchmark: +(cum.benchmark[i] * 100).toFixed(2),
-        }))
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Analytics failed.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const heroMetrics = metrics.filter((m) => highlight.includes(m.key));
-  const otherMetrics = metrics.filter((m) => !highlight.includes(m.key));
-
+export default function WelcomePage() {
   return (
-    <div className="space-y-8">
-      <PageHeader
-        title="Portfolio overview"
-        subtitle="Load a portfolio and run institutional-grade performance, allocation, and risk analytics."
-        actions={
-          <div className="flex items-end gap-3">
-            <PortfolioSelector value={portfolioId} onChange={setPortfolioId} />
-            <button onClick={run} disabled={!portfolioId} className="btn-primary disabled:opacity-40">
-              Run analytics
-            </button>
+    <div className="min-h-screen">
+      {/* Hero */}
+      <section className="relative overflow-hidden px-6 pb-16 pt-20 md:px-12 md:pt-28">
+        <div className="absolute inset-0 bg-gradient-to-b from-accent/5 via-transparent to-transparent" />
+        <div className="relative mx-auto max-w-4xl text-center">
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/5 px-4 py-1.5">
+            <span className="status-dot bg-accent" />
+            <span className="text-[11px] font-medium tracking-wide text-accent">Live analytics engine</span>
           </div>
-        }
-      />
-
-      {loading && <Spinner />}
-      {error && <p className="text-xs text-rose-400">{error}</p>}
-
-      {metrics.length > 0 && portfolioId && (
-        <div className="flex items-center gap-3 fade-in">
-          <a
-            href={downloadUrl(`/export/${portfolioId}/csv`)}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface/60 px-3 py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-slate-800 hover:text-white"
-          >
-            <Download size={12} /> Export analytics CSV
-          </a>
-          <a
-            href={downloadUrl(`/export/${portfolioId}/holdings-csv`)}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-surface/60 px-3 py-1.5 text-[11px] font-medium text-slate-300 transition hover:bg-slate-800 hover:text-white"
-          >
-            <Download size={12} /> Export holdings CSV
-          </a>
+          <h1 className="mb-4 text-4xl font-bold leading-tight tracking-tight text-white md:text-5xl lg:text-6xl">
+            Portfolio Risk{" "}
+            <span className="bg-gradient-to-r from-accent via-sky-400 to-violet-400 bg-clip-text text-transparent">
+              Intelligence
+            </span>
+          </h1>
+          <p className="mx-auto mb-8 max-w-2xl text-base leading-relaxed text-slate-400 md:text-lg">
+            Institutional-grade portfolio analytics, risk decomposition, Monte Carlo simulation, 
+            and factor analysis — built for investors who want to understand their exposures.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <Link
+              href="/overview"
+              className="group flex items-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-gray-900 transition hover:bg-accent/90"
+            >
+              Launch dashboard
+              <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
+            </Link>
+            <Link
+              href="/holdings"
+              className="flex items-center gap-2 rounded-xl border border-border bg-surface/60 px-6 py-3 text-sm font-medium text-slate-300 transition hover:bg-slate-800 hover:text-white"
+            >
+              <Briefcase size={15} />
+              Build your own portfolio
+            </Link>
+          </div>
         </div>
-      )}
+      </section>
 
-      {heroMetrics.length > 0 && (
-        <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 fade-in">
-          {heroMetrics.map((m) => (
-            <MetricCard
-              key={m.key}
-              label={m.key.replaceAll("_", " ")}
-              value={isPct(m.key) ? fmtPct(m.value) : fmtDec(m.value)}
-              accent={accentFor(m.key, m.value)}
-            />
+      {/* Stats strip */}
+      <section className="border-y border-border bg-surface/30 px-6 py-6">
+        <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-8 md:gap-16">
+          {[
+            ["8", "Analytics modules"],
+            ["15+", "Risk metrics"],
+            ["5,000", "Monte Carlo paths"],
+            ["3", "Fama-French factors"],
+            ["5", "Demo portfolios"],
+          ].map(([num, label]) => (
+            <div key={label} className="text-center">
+              <p className="text-2xl font-bold text-white">{num}</p>
+              <p className="text-[11px] uppercase tracking-wider text-slate-500">{label}</p>
+            </div>
           ))}
-        </section>
-      )}
-
-      {/* Cumulative returns chart */}
-      {cumData.length > 0 && (
-        <div className="card fade-in">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp size={14} className="text-accent" />
-            <h3 className="section-title">Cumulative returns — Portfolio vs Benchmark</h3>
-          </div>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={cumData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
-              <defs>
-                <linearGradient id="gradPort" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#38bdf8" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="gradBench" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#64748b" stopOpacity={0.2} />
-                  <stop offset="95%" stopColor="#64748b" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
-              <YAxis tick={{ fontSize: 10, fill: "#64748b" }} axisLine={false} tickLine={false} tickFormatter={(v: number) => `${v}%`} />
-              <Tooltip contentStyle={{ backgroundColor: "#111827", border: "1px solid #1e293b", borderRadius: 8, fontSize: 11, color: "#e2e8f0" }} formatter={(v: number) => [`${v}%`]} />
-              <Legend wrapperStyle={{ fontSize: 11, color: "#94a3b8" }} />
-              <Area type="monotone" dataKey="Portfolio" stroke="#38bdf8" strokeWidth={2} fill="url(#gradPort)" />
-              <Area type="monotone" dataKey="Benchmark" stroke="#64748b" strokeWidth={1.5} fill="url(#gradBench)" strokeDasharray="4 3" />
-            </AreaChart>
-          </ResponsiveContainer>
         </div>
-      )}
+      </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Sector allocation */}
-        {allocation && (
-          <div className="card fade-in space-y-4">
-            <div className="flex items-center gap-2">
-              <PieChart size={14} className="text-accent" />
-              <h3 className="section-title">Sector allocation</h3>
-            </div>
-            <div className="space-y-2">
-              {allocation.by_sector.map((s) => (
-                <div key={s.name} className="space-y-1">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="text-slate-300">{s.name}</span>
-                    <span className="tabular-nums text-slate-400">{(s.weight * 100).toFixed(1)}%</span>
+      {/* Features */}
+      <section className="px-6 py-16 md:px-12">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-10 text-center">
+            <h2 className="mb-2 text-2xl font-bold text-white">What you can analyze</h2>
+            <p className="text-sm text-slate-400">Every metric computed from live market data. No mock numbers.</p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {features.map((f) => {
+              const Icon = f.icon;
+              return (
+                <div
+                  key={f.title}
+                  className="group rounded-xl border border-border bg-surface/40 p-5 transition hover:border-accent/30 hover:bg-surface/60"
+                >
+                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-accent/10">
+                    <Icon size={18} className="text-accent" />
                   </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-slate-800">
-                    <div className="h-full rounded-full bg-gradient-to-r from-accent to-accent/60" style={{ width: `${Math.min(s.weight * 100, 100)}%` }} />
-                  </div>
+                  <h3 className="mb-1.5 text-sm font-semibold text-white">{f.title}</h3>
+                  <p className="text-xs leading-relaxed text-slate-400">{f.desc}</p>
                 </div>
-              ))}
-            </div>
-            <div className="flex gap-6 border-t border-border pt-3">
-              <div>
-                <p className="metric-label">HHI</p>
-                <p className="metric-value-sm">{allocation.hhi.toFixed(4)}</p>
-              </div>
-              <div>
-                <p className="metric-label">Diversification</p>
-                <p className="metric-value-sm">{(allocation.diversification_score * 100).toFixed(1)}%</p>
-              </div>
-            </div>
+              );
+            })}
           </div>
-        )}
-
-        {/* Insights */}
-        {insights.length > 0 && (
-          <div className="card fade-in space-y-4">
-            <div className="flex items-center gap-2">
-              <Lightbulb size={14} className="text-amber-400" />
-              <h3 className="section-title">Portfolio insights</h3>
-            </div>
-            <div className="space-y-2">
-              {insights.map((text, i) => (
-                <div key={i} className="flex items-start gap-2.5 rounded-lg border border-border bg-background/50 px-3 py-2.5">
-                  <span className="mt-0.5 status-dot bg-amber-400/70" />
-                  <p className="text-xs leading-relaxed text-slate-300">{text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Extended metrics + holdings table */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {otherMetrics.length > 0 && (
-          <div className="card fade-in space-y-4">
-            <div className="flex items-center gap-2">
-              <BarChart3 size={14} className="text-accent" />
-              <h3 className="section-title">Extended metrics</h3>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {otherMetrics.map((m) => (
-                <div key={m.key} className="rounded-lg border border-border bg-background/60 px-3 py-2.5">
-                  <p className="metric-label">{m.key.replaceAll("_", " ")}</p>
-                  <p className="metric-value-sm">{isPct(m.key) ? fmtPct(m.value) : fmtDec(m.value)}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {allocation && allocation.by_asset.length > 0 && (
-          <div className="card fade-in">
-            <div className="flex items-center gap-2 mb-4">
-              <ShieldCheck size={14} className="text-accent" />
-              <h3 className="section-title">Holdings breakdown</h3>
-            </div>
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="border-b border-border text-[10px] uppercase tracking-[0.15em] text-slate-500">
-                  <th className="pb-2 pr-4">Asset</th>
-                  <th className="pb-2 pr-4 text-right">Weight</th>
-                  <th className="pb-2">Allocation</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {allocation.by_asset.map((a) => (
-                  <tr key={a.name} className="text-slate-300">
-                    <td className="py-2.5 pr-4 font-medium">{a.name}</td>
-                    <td className="py-2.5 pr-4 text-right tabular-nums">{(a.weight * 100).toFixed(2)}%</td>
-                    <td className="py-2.5">
-                      <div className="h-1.5 w-24 overflow-hidden rounded-full bg-slate-800">
-                        <div className="h-full rounded-full bg-accent/70" style={{ width: `${Math.min(a.weight * 100, 100)}%` }} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {metrics.length === 0 && !loading && (
-        <div className="empty-state">
-          <BarChart3 size={28} className="mb-2 text-slate-600" />
-          <p>Select a portfolio above and click Run analytics</p>
         </div>
-      )}
+      </section>
+
+      {/* Demo portfolios */}
+      <section className="px-6 pb-16 md:px-12">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-10 text-center">
+            <h2 className="mb-2 text-2xl font-bold text-white">Explore demo portfolios</h2>
+            <p className="text-sm text-slate-400">
+              Five pre-loaded strategies — select one from the dashboard and run analytics instantly.
+            </p>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {demos.map((d) => (
+              <Link
+                href="/overview"
+                key={d.name}
+                className={`group relative overflow-hidden rounded-xl border ${d.border} bg-gradient-to-br ${d.color} p-5 transition hover:scale-[1.02]`}
+              >
+                <h3 className="mb-1 text-sm font-semibold text-white">{d.name}</h3>
+                <p className="mb-3 text-xs text-slate-400">{d.strategy}</p>
+                <div className="mb-4 flex flex-wrap gap-1.5">
+                  {d.tickers.map((t) => (
+                    <span
+                      key={t}
+                      className="rounded-md border border-border bg-background/60 px-2 py-0.5 text-[10px] font-medium text-slate-300"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+                <div className="flex items-center gap-1 text-[11px] font-medium text-accent">
+                  Analyze
+                  <ChevronRight size={12} className="transition-transform group-hover:translate-x-0.5" />
+                </div>
+              </Link>
+            ))}
+            <Link
+              href="/holdings"
+              className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border p-5 transition hover:border-accent/40 hover:bg-surface/40"
+            >
+              <Briefcase size={24} className="mb-2 text-slate-500" />
+              <span className="text-sm font-medium text-slate-300">Build your own</span>
+              <span className="mt-1 text-[11px] text-slate-500">Add holdings or upload CSV</span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Pages grid */}
+      <section className="border-t border-border bg-surface/20 px-6 py-16 md:px-12">
+        <div className="mx-auto max-w-5xl">
+          <div className="mb-10 text-center">
+            <h2 className="mb-2 text-2xl font-bold text-white">Dashboard pages</h2>
+            <p className="text-sm text-slate-400">Jump directly to any analytics module.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { href: "/overview", icon: LayoutDashboard, label: "Overview", desc: "KPIs, charts, insights" },
+              { href: "/risk", icon: ShieldAlert, label: "Risk", desc: "VaR, drawdown, correlation" },
+              { href: "/benchmark", icon: GitCompareArrows, label: "Benchmark", desc: "vs SPY comparison" },
+              { href: "/scenarios", icon: FlaskConical, label: "Scenarios", desc: "Stress testing" },
+              { href: "/optimization", icon: Sparkles, label: "Optimization", desc: "Efficient frontier" },
+              { href: "/monte-carlo", icon: Dice5, label: "Monte Carlo", desc: "Simulation paths" },
+              { href: "/factors", icon: FlaskRound, label: "Factors", desc: "Fama-French regression" },
+              { href: "/holdings", icon: Briefcase, label: "Holdings", desc: "Build a portfolio" },
+            ].map((p) => {
+              const Icon = p.icon;
+              return (
+                <Link
+                  key={p.href}
+                  href={p.href}
+                  className="group flex items-center gap-3 rounded-xl border border-border bg-surface/40 px-4 py-3.5 transition hover:border-accent/30 hover:bg-surface/60"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/10">
+                    <Icon size={15} className="text-accent" />
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-semibold text-white">{p.label}</p>
+                    <p className="text-[11px] text-slate-500">{p.desc}</p>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-border px-6 py-8">
+        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 sm:flex-row">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/20">
+              <span className="text-xs font-black text-accent">QA</span>
+            </div>
+            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-500">Quant Arc</span>
+          </div>
+          <div className="flex items-center gap-4 text-[11px] text-slate-500">
+            <a
+              href="https://github.com/anirudhkmandala9/portfolio-risk-intelligence-dashboard"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition hover:text-slate-300"
+            >
+              GitHub
+            </a>
+            <span>Built with Next.js + FastAPI</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

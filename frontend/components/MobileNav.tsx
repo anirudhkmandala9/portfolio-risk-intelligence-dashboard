@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 
 const items = [
-  { href: "/", label: "Overview", icon: LayoutDashboard },
+  { href: "/overview", label: "Overview", icon: LayoutDashboard },
   { href: "/holdings", label: "Holdings", icon: Briefcase },
   { href: "/risk", label: "Risk", icon: ShieldAlert },
   { href: "/benchmark", label: "Benchmark", icon: GitCompareArrows },

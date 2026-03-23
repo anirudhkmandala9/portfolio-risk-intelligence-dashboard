@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { apiGet } from "../../lib/api";
-import { PageHeader } from "../../components/PageHeader";
-import { PortfolioSelector } from "../../components/PortfolioSelector";
-import { Spinner } from "../../components/Spinner";
+import { apiGet } from "../../../lib/api";
+import { PageHeader } from "../../../components/PageHeader";
+import { PortfolioSelector } from "../../../components/PortfolioSelector";
+import { Spinner } from "../../../components/Spinner";
 import { Sparkles, Target } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,

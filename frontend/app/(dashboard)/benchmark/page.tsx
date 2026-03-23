@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { apiGet } from "../../lib/api";
-import { PageHeader } from "../../components/PageHeader";
-import { MetricCard } from "../../components/MetricCard";
-import { PortfolioSelector } from "../../components/PortfolioSelector";
-import { Spinner } from "../../components/Spinner";
+import { apiGet } from "../../../lib/api";
+import { PageHeader } from "../../../components/PageHeader";
+import { MetricCard } from "../../../components/MetricCard";
+import { PortfolioSelector } from "../../../components/PortfolioSelector";
+import { Spinner } from "../../../components/Spinner";
 import { GitCompareArrows, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 type BenchmarkData = {

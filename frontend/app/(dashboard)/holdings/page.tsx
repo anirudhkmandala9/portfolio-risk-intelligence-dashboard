@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { apiPost, apiUpload } from "../../lib/api";
-import { PageHeader } from "../../components/PageHeader";
-import { Spinner } from "../../components/Spinner";
+import { apiPost, apiUpload } from "../../../lib/api";
+import { PageHeader } from "../../../components/PageHeader";
+import { Spinner } from "../../../components/Spinner";
 import { Upload, Plus, Trash2, Save, FileSpreadsheet } from "lucide-react";
 
 type Holding = {
