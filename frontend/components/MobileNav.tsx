@@ -15,6 +15,7 @@ import {
   Sparkles,
   Dice5,
   FlaskRound,
+  Clock,
 } from "lucide-react";
 
 const items = [
@@ -26,6 +27,7 @@ const items = [
   { href: "/optimization", label: "Optimization", icon: Sparkles },
   { href: "/monte-carlo", label: "Monte Carlo", icon: Dice5 },
   { href: "/factors", label: "Factor Analysis", icon: FlaskRound },
+  { href: "/desk-clock", label: "Session clock", icon: Clock },
 ];
 
 export function MobileNav() {

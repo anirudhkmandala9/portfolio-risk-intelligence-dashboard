@@ -15,6 +15,7 @@ import {
   BarChart3,
   Target,
   ChevronRight,
+  Clock,
 } from "lucide-react";
 
 const features = [
@@ -132,7 +133,7 @@ export default function WelcomePage() {
       <section className="border-y border-border bg-surface/30 px-6 py-6">
         <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-8 md:gap-16">
           {[
-            ["8", "Analytics modules"],
+            ["9", "Dashboard pages"],
             ["15+", "Risk metrics"],
             ["5,000", "Monte Carlo paths"],
             ["3", "Fama-French factors"],
@@ -236,6 +237,7 @@ export default function WelcomePage() {
               { href: "/monte-carlo", icon: Dice5, label: "Monte Carlo", desc: "Simulation paths" },
               { href: "/factors", icon: FlaskRound, label: "Factors", desc: "Fama-French regression" },
               { href: "/holdings", icon: Briefcase, label: "Holdings", desc: "Build a portfolio" },
+              { href: "/desk-clock", icon: Clock, label: "Session clock", desc: "US equity hours (ET)" },
             ].map((p) => {
               const Icon = p.icon;
               return (
