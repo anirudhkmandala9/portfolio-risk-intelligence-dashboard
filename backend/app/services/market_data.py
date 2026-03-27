@@ -28,6 +28,15 @@ _STOOQ_HEADERS = {
     "Accept": "text/csv,*/*",
 }
 
+# Yahoo Finance JSON chart API — often works on cloud hosts (Render) when yfinance fails.
+_YAHOO_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/json,text/plain,*/*",
+}
+
 
 def _download_stooq(ticker: str, days: int, *, retries: int = 3) -> pd.Series | None:
     """Download daily close prices from Stooq (free, no auth)."""
@@ -68,6 +77,64 @@ def _download_stooq(ticker: str, days: int, *, retries: int = 3) -> pd.Series | 
     return None
 
 
+def _download_yahoo_chart(ticker: str, period: str) -> pd.Series | None:
+    """Adjusted closes via Yahoo's public chart endpoint (requests + JSON). Reliable on servers."""
+    sym = ticker.strip().upper()
+    if not sym:
+        return None
+    url = f"https://query2.finance.yahoo.com/v8/finance/chart/{sym}"
+    params = {"interval": "1d", "range": period}
+    try:
+        r = requests.get(url, params=params, headers=_YAHOO_HEADERS, timeout=45)
+        if r.status_code != 200:
+            logger.warning("Yahoo chart HTTP %s for %s", r.status_code, sym)
+            return None
+        payload = r.json()
+        chart = payload.get("chart") or {}
+        if chart.get("error"):
+            logger.warning("Yahoo chart error for %s: %s", sym, chart["error"])
+            return None
+        results = chart.get("result") or []
+        if not results:
+            return None
+        res = results[0]
+        ts = res.get("timestamp") or []
+        if not ts:
+            return None
+        indicators = res.get("indicators") or {}
+        adj_block = indicators.get("adjclose") or []
+        closes: list | None = None
+        if adj_block and adj_block[0].get("adjclose"):
+            closes = adj_block[0]["adjclose"]
+        if not closes:
+            quotes = indicators.get("quote") or []
+            if quotes:
+                closes = quotes[0].get("close")
+        if not closes or len(closes) != len(ts):
+            return None
+        idx = pd.to_datetime(ts, unit="s", utc=True).tz_convert(None)
+        s = pd.to_numeric(pd.Series(closes, index=idx), errors="coerce")
+        s = s.dropna()
+        if s.empty:
+            return None
+        return s.rename(sym).sort_index()
+    except Exception as e:
+        logger.warning("Yahoo chart fetch failed for %s: %s", sym, e)
+        return None
+
+
+def _download_yahoo_chart_batch(tickers: list[str], period: str) -> pd.DataFrame | None:
+    frames: list[pd.Series] = []
+    for t in tickers:
+        s = _download_yahoo_chart(t, period)
+        if s is not None and not s.empty:
+            frames.append(s)
+        time.sleep(0.12)
+    if not frames:
+        return None
+    return pd.concat(frames, axis=1).sort_index()
+
+
 def _download_yfinance(ticker: str, days: int) -> pd.Series | None:
     """Fallback when Stooq fails from cloud IPs (e.g. Render). Uses Yahoo via yfinance."""
     try:
@@ -85,6 +152,44 @@ def _download_yfinance(ticker: str, days: int) -> pd.Series | None:
         return s
     except Exception as e:
         logger.warning("yfinance fallback failed for %s: %s", ticker, e)
+        return None
+
+
+def _download_yfinance_batch(tickers: list[str], days: int) -> pd.DataFrame | None:
+    """One Yahoo request for all symbols — often succeeds when per-ticker calls fail on cloud hosts."""
+    try:
+        import yfinance as yf
+    except ImportError:
+        return None
+    if not tickers:
+        return None
+    period_map = {180: "6mo", 365: "1y", 730: "2y", 1825: "5y"}
+    period = period_map.get(days, "2y")
+    try:
+        raw = yf.download(
+            list(tickers),
+            period=period,
+            interval="1d",
+            auto_adjust=True,
+            progress=False,
+            threads=False,
+        )
+        if raw.empty or "Close" not in raw.columns:
+            return None
+        close = raw["Close"]
+        if isinstance(close, pd.Series):
+            col = (
+                str(close.name).upper()
+                if close.name is not None
+                else tickers[0].upper()
+            )
+            out = pd.DataFrame({col: close.astype(float)})
+        else:
+            out = close.astype(float).copy()
+            out.columns = [str(c).upper() for c in out.columns]
+        return out.sort_index()
+    except Exception as e:
+        logger.warning("yfinance batch fallback failed: %s", e)
         return None
 
 
@@ -106,14 +211,31 @@ def fetch_adj_close_prices(
     for ticker in cleaned:
         series = _download_stooq(ticker, days)
         if series is None or series.empty:
-            logger.info("Stooq miss for %s; trying yfinance fallback", ticker)
+            logger.info("Stooq miss for %s; trying Yahoo chart API", ticker)
+            series = _download_yahoo_chart(ticker, period)
+        if series is None or series.empty:
+            logger.info("Yahoo chart miss for %s; trying yfinance fallback", ticker)
             series = _download_yfinance(ticker, days)
-            time.sleep(0.45)
+            time.sleep(0.2)
         if series is not None and not series.empty:
             frames.append(series)
-        time.sleep(0.35)
+        time.sleep(0.25)
 
     if not frames:
+        batch = _download_yahoo_chart_batch(cleaned, period)
+        if batch is not None and not batch.empty:
+            cols = [c for c in cleaned if c in batch.columns]
+            if cols:
+                result = batch[cols].sort_index().ffill().dropna(how="all")
+                _cache[key] = result
+                return result
+        batch = _download_yfinance_batch(cleaned, days)
+        if batch is not None and not batch.empty:
+            cols = [c for c in cleaned if c in batch.columns]
+            if cols:
+                result = batch[cols].sort_index().ffill().dropna(how="all")
+                _cache[key] = result
+                return result
         return pd.DataFrame()
 
     result = pd.concat(frames, axis=1).sort_index().ffill().dropna(how="all")

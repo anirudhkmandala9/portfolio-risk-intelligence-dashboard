@@ -46,6 +46,13 @@ app.include_router(charts_router)
 app.include_router(export_router)
 
 
+@app.get("/", tags=["system"])
+def root() -> dict[str, str]:
+    """Root URL — avoids 404 on load balancer / platform probes that hit `/`."""
+
+    return {"service": "portfolio-risk-api", "status": "ok"}
+
+
 @app.get("/health", tags=["system"])
 def health_check() -> dict[str, str]:
     """Lightweight health check endpoint."""
