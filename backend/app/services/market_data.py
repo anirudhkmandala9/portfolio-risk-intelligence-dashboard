@@ -68,6 +68,26 @@ def _download_stooq(ticker: str, days: int, *, retries: int = 3) -> pd.Series | 
     return None
 
 
+def _download_yfinance(ticker: str, days: int) -> pd.Series | None:
+    """Fallback when Stooq fails from cloud IPs (e.g. Render). Uses Yahoo via yfinance."""
+    try:
+        import yfinance as yf
+    except ImportError:
+        return None
+    try:
+        period_map = {180: "6mo", 365: "1y", 730: "2y", 1825: "5y"}
+        period = period_map.get(days, "2y")
+        hist = yf.Ticker(ticker).history(period=period, auto_adjust=True)
+        if hist is None or hist.empty:
+            return None
+        close_col = "Close" if "Close" in hist.columns else hist.columns[0]
+        s = hist[close_col].astype(float).rename(ticker.upper()).sort_index()
+        return s
+    except Exception as e:
+        logger.warning("yfinance fallback failed for %s: %s", ticker, e)
+        return None
+
+
 def fetch_adj_close_prices(
     tickers: list[str],
     period: str = "2y",
@@ -85,9 +105,12 @@ def fetch_adj_close_prices(
 
     for ticker in cleaned:
         series = _download_stooq(ticker, days)
+        if series is None or series.empty:
+            logger.info("Stooq miss for %s; trying yfinance fallback", ticker)
+            series = _download_yfinance(ticker, days)
+            time.sleep(0.45)
         if series is not None and not series.empty:
             frames.append(series)
-        # Stooq is friendlier with a small gap between symbols (cloud IPs get rate-limited easily)
         time.sleep(0.35)
 
     if not frames:
